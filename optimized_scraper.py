@@ -305,8 +305,8 @@ async def main():
     # More workers and better batching for faster processing
     scraper = OptimizedMashinScraper(concurrent_requests=15, max_workers=5)
     
-    # Test with 2 pages (40 cars)
-    await scraper.scrape_complete(max_pages=2, batch_size=30)  # 30 car batches
+    # Full scraping - all pages
+    await scraper.scrape_complete(max_pages=None, batch_size=30)  # 30 car batches
 
 if __name__ == "__main__":
     asyncio.run(main())
