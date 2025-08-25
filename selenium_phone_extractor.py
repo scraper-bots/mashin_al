@@ -18,6 +18,11 @@ class SeleniumPhoneExtractor:
         self.logger = logging.getLogger(__name__)
         self.max_workers = 3  # Limit concurrent browsers
         
+        # Progress tracking
+        self.total_cars_processed = 0
+        self.total_phones_found = 0
+        self.start_time = None
+        
     def create_driver(self) -> webdriver.Chrome:
         """Create Chrome WebDriver with stealth options"""
         chrome_options = Options()
@@ -210,7 +215,11 @@ class SeleniumPhoneExtractor:
 
     async def get_phone_numbers_batch(self, car_ids: List[str]) -> Dict[str, Optional[str]]:
         """Extract phone numbers for multiple cars using ThreadPoolExecutor"""
+        if self.start_time is None:
+            self.start_time = time.time()
+        
         self.logger.info(f"📱 Starting batch phone extraction for {len(car_ids)} cars...")
+        self.logger.info(f"🔄 Total processed so far: {self.total_cars_processed} cars, {self.total_phones_found} phones found")
         
         results = {}
         
@@ -242,7 +251,25 @@ class SeleniumPhoneExtractor:
         phones_found = sum(1 for phone in results.values() if phone)
         success_rate = phones_found / len(car_ids) * 100 if car_ids else 0
         
+        # Update totals
+        self.total_cars_processed += len(car_ids)
+        self.total_phones_found += phones_found
+        
+        # Calculate progress stats
+        elapsed_time = time.time() - self.start_time if self.start_time else 0
+        cars_per_minute = (self.total_cars_processed / elapsed_time * 60) if elapsed_time > 0 else 0
+        
         self.logger.info(f"📊 Batch complete: {phones_found}/{len(car_ids)} phones found ({success_rate:.1f}% success)")
+        self.logger.info(f"""
+🔥 DETAILED PROGRESS:
+   • This batch: {phones_found}/{len(car_ids)} phones ({success_rate:.1f}% success)
+   • TOTAL PROCESSED: {self.total_cars_processed} cars
+   • TOTAL PHONES FOUND: {self.total_phones_found} phones
+   • OVERALL SUCCESS RATE: {self.total_phones_found/self.total_cars_processed*100:.1f}%
+   • SPEED: {cars_per_minute:.1f} cars/minute
+   • ELAPSED TIME: {elapsed_time/60:.1f} minutes
+   • ESTIMATED FOR 29,780 CARS: {(29780/cars_per_minute)/60:.1f} hours total
+        """)
         
         return results
 
